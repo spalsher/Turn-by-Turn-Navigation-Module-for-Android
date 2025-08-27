@@ -21,7 +21,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="SET YOU GOOGLE API KEY HERE" />
+            android:value="@string/google_maps_key" />
 
         <!-- Registering GPS service -->
         <service android:name=".Tools.GpsService"/>
