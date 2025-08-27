@@ -4,7 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.arch.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -14,10 +14,10 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -47,9 +47,11 @@ import com.dev.mytbt.Tools.GpsService;
 import com.dev.mytbt.Tools.MapFileReader;
 import com.dev.mytbt.Tools.NavSharedPrefs;
 import com.dev.mytbt.Tools.PermissionManager;
-import com.google.android.gms.location.places.AutocompleteFilter;
-import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.ui.PlaceAutocomplete;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.widget.Autocomplete;
+import com.google.android.libraries.places.widget.AutocompleteActivity;
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.graphhopper.GraphHopper;
 
 import org.oscim.android.MapView;
@@ -299,7 +301,7 @@ public class FragNavigation extends Fragment {
         /* Checking map data model
         --------------------------------------- */
         if (mapViewController == null) // If there is no mapViewController, we instantiate one that is shared among all instances of this fragment
-            mapViewController = ViewModelProviders.of(this).get(MapViewController.class);
+            mapViewController = new ViewModelProvider(this).get(MapViewController.class);
 
         /* Checking required permissions
         --------------------------------------- */
@@ -1177,18 +1179,22 @@ public class FragNavigation extends Fragment {
 
     private void displaySearchDestination() {
         try {
-            // We use the PlaceAutocomplete to search for a location
-            AutocompleteFilter filter = new AutocompleteFilter.Builder()
-                    .setCountry(Locale.getDefault().getCountry()) // we also add a country filter
-                    .build();
-
             Activity myActivity = getActivity();
 
             if (myActivity != null) {
-                Intent intent = new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_OVERLAY)
-                        .setFilter(filter)
+                if (!Places.isInitialized()) {
+                    Places.initialize(myActivity.getApplicationContext(), myActivity.getString(R.string.google_maps_key));
+                }
+
+                java.util.List<com.google.android.libraries.places.api.model.Place.Field> fields =
+                        java.util.Arrays.asList(
+                                com.google.android.libraries.places.api.model.Place.Field.LAT_LNG
+                        );
+
+                Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY, fields)
+                        .setCountry(Locale.getDefault().getCountry())
                         .build(myActivity);
-                startActivityForResult(intent, PLACE_AUTOCOMPLETE_REQUEST_CODE); // the result is received by onActivityResult()
+                startActivityForResult(intent, PLACE_AUTOCOMPLETE_REQUEST_CODE);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1203,14 +1209,13 @@ public class FragNavigation extends Fragment {
          * Receiving a "places" search result
          */
         if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE && resultCode == RESULT_OK) {
-            Activity myActivity = getActivity();
-            if (myActivity != null) {
-                Place place = PlaceAutocomplete.getPlace(myActivity, data);
+            Place place = Autocomplete.getPlaceFromIntent(data);
+            if (place.getLatLng() != null) {
                 GeoPoint point = new GeoPoint(place.getLatLng().latitude, place.getLatLng().longitude);
                 setNewDestination(point);
-            } else {
-                Log.e(TAG, "ERROR: onActivityResult() with requestCode PLACE_AUTOCOMPLETE_REQUEST_CODE was unable to find the Activity instance");
             }
+        } else if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE && resultCode == AutocompleteActivity.RESULT_ERROR) {
+            Log.e(TAG, "ERROR: Places autocomplete returned error");
         }
     }
 

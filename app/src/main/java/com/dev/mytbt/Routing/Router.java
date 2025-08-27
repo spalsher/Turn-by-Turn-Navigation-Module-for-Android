@@ -1,7 +1,7 @@
 package com.dev.mytbt.Routing;
 
 import android.os.AsyncTask;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import com.dev.mytbt.NavConfig;

@@ -2,7 +2,7 @@ package com.dev.mytbt.Guide;
 
 import android.content.Context;
 import android.speech.tts.TextToSpeech;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import com.dev.mytbt.NavConfig;
